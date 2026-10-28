@@ -1,0 +1,23 @@
+{
+  "name": "photobooth-print-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Looks up a pickup code on the booth server and prints the photo on an ESC/POS thermal printer",
+  "scripts": {
+    "start": "node agent.js",
+    "dev": "node --watch agent.js",
+    "print": "node cli.js",
+    "test-print": "node cli.js --test",
+    "test": "node test/escpos.test.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.4",
+    "usb": "^2.13.0"
+  }
+}

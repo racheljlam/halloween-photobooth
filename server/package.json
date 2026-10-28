@@ -1,0 +1,16 @@
+{
+  "name": "photobooth-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Photobooth server: serves the iPad booth UI, stores photos, issues pickup codes",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "gen-cert": "node gen-cert.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "selfsigned": "^2.4.1"
+  }
+}

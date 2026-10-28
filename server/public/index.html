@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Friendly Monster Mash</title>
+<style>
+  :root {
+    /* Hotel Transylvania: midnight castle, moonlight, a vampire-red accent.
+       (variable names kept from the earlier theme: cream = page ground, cocoa = text, orange = primary action,
+        purple = secondary/surface, green = tertiary, white = cards) */
+    --cream: #17123A; --cocoa: #FFF4DA; --orange: #E63946; --purple: #7C4DFF; --green: #FFD166; --white: #2A2160;
+    --moon: #FFE9A8; --night: #0B0820; --neon: #FF4D5E;
+    --font: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html, body { height: 100%; margin: 0; color: var(--cocoa); font-family: var(--font); overflow: hidden;
+    background-color: var(--cream);   /* midnight, with a sparse star field */
+    background-image: radial-gradient(circle at 20% 30%, rgba(255,244,218,.9) 0 1px, transparent 2px),
+                      radial-gradient(circle at 70% 60%, rgba(255,244,218,.6) 0 1px, transparent 2px);
+    background-size: 160px 140px, 220px 180px; }
+  .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+  .screen.active { display: flex; }
+  h1 { font-size: clamp(36px, 8vmin, 84px); font-weight: 900; line-height: 1; margin: 0; letter-spacing: -.01em; }
+  /* the signature element: a buzzing neon HOTEL sign */
+  .sign .neon { display: block; color: var(--neon); letter-spacing: .18em; padding-left: .18em; text-transform: uppercase;
+    text-shadow: 0 0 6px #ff6b78, 0 0 18px #ff2d44, 0 0 40px rgba(255,45,68,.55); animation: flicker 7s infinite; }
+  .sign .name { display: block; color: var(--moon); font-size: .62em; margin-top: .25em; letter-spacing: .01em; }
+  @keyframes flicker { 0%, 100% { opacity: 1; } 41% { opacity: 1; } 42% { opacity: .55; } 43% { opacity: 1; } 44.5% { opacity: .7; } 45.5% { opacity: 1; } 78% { opacity: 1; } 79% { opacity: .6; } 80% { opacity: 1; } }
+  p.lead { font-size: clamp(18px, 3.2vmin, 28px); margin: 16px 0 0; opacity: .75; }
+  .credit { position: absolute; top: max(22px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 600; letter-spacing: .02em; opacity: .38; white-space: nowrap; }
+  .credit code { font-family: ui-monospace, Menlo, monospace; font-weight: 700; opacity: 1; }
+  .cast { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 34vh; pointer-events: none; }
+  .cast svg { width: 100%; height: 100%; display: block; }
+  .cast .bat { animation: flap 5s ease-in-out infinite; transform-origin: center; }
+  .cast .bat:nth-child(2) { animation-delay: 1.3s; } .cast .bat:nth-child(3) { animation-delay: 2.6s; }
+  @keyframes flap { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-30px, -22px); } }
+  .hero { margin-bottom: 30vh; }
+
+  button { font: 800 22px var(--font); border: 0; border-radius: 999px; padding: 18px 36px; cursor: pointer; color: var(--white); background: var(--orange);
+    box-shadow: 0 4px 0 rgba(11,8,32,.6); }
+  button:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(11,8,32,.6); }
+  .ghost { background: rgba(255,244,218,.14); color: var(--cocoa); box-shadow: none; }
+  .big { padding: 26px 56px; font-size: 30px; }
+  button:focus-visible { outline: 4px solid var(--moon); outline-offset: 4px; }
+
+  /* mode cards */
+  .modes { display: flex; gap: 22px; margin-top: 36px; flex-wrap: wrap; justify-content: center; }
+  .modecard { width: min(300px, 42vw); min-height: 240px; border-radius: 32px; background: var(--white); color: var(--cocoa); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 28px 20px; box-shadow: 0 6px 0 rgba(11,8,32,.6); font-weight: 800; transition: transform .15s; border: 2px solid rgba(255,244,218,.12); }
+  .modecard .icon { font-size: 64px; line-height: 1; }
+  .modecard b { font-size: 30px; }
+  .modecard small { font-size: 17px; font-weight: 600; opacity: .7; line-height: 1.35; }
+  .modecard.rawr { background: var(--purple); color: var(--cocoa); }
+  .modecard.rawr small { opacity: .85; }
+  .modecard:hover { transform: translateY(-6px) rotate(-1.5deg); }
+  .modecard.rawr:hover { transform: translateY(-6px) rotate(1.5deg); }
+
+  /* rawr meter */
+  #meter { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  #meter .track { width: 54px; height: min(56vh, 520px); border-radius: 27px; background: rgba(11,8,32,.55); border: 4px solid var(--moon); position: relative; overflow: hidden; }
+  #meter .fill { position: absolute; inset: 0; background: linear-gradient(to top, var(--purple) 0 45%, var(--green) 45% 75%, var(--orange) 75%); clip-path: inset(100% 0 0 0); transition: clip-path .06s linear; }
+  #meter .peak { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--moon); transition: bottom .2s; z-index: 1; }
+  #meter .pct { font-weight: 900; font-size: 26px; color: var(--night); background: var(--moon); padding: 6px 14px; border-radius: 999px; }
+  #rawrWord { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; pointer-events: none; font-weight: 900; color: var(--neon); -webkit-text-stroke: 4px var(--night); text-shadow: 0 0 24px rgba(255,45,68,.8); font-size: 13vmin; transform-origin: center; }
+  .rating { font-size: 22px; font-weight: 800; color: var(--purple); margin-top: 10px; }
+
+  /* snap count */
+  .counts { display: flex; gap: 18px; margin-top: 40px; flex-wrap: wrap; justify-content: center; }
+  .count { width: 150px; padding: 22px 0 18px; border-radius: 28px; background: var(--white); color: var(--cocoa); display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 4px 0 rgba(11,8,32,.6); }
+  .count b { font-size: 48px; line-height: 1; }
+  .count .strip { display: flex; flex-direction: column; gap: 3px; }
+  .count .strip i { display: block; width: 34px; height: 14px; border-radius: 3px; }
+  .count .strip i:nth-child(3n+1) { background: var(--orange); } .count .strip i:nth-child(3n+2) { background: var(--purple); } .count .strip i:nth-child(3n) { background: var(--green); }
+
+  /* camera */
+  #video, #shot { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+  #video { transform: scaleX(-1); }
+  #shot { display: none; object-fit: contain; background: transparent; top: 92px; left: 24px; width: calc(100% - 48px); height: calc(100% - 242px); }
+  #guide { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 200vmax rgba(23,18,58,.86); border-radius: 14px; pointer-events: none; }
+  #guide::after { content: ""; position: absolute; inset: -5px; border: 5px solid var(--moon); border-radius: 19px; }
+  #flash { position: absolute; inset: 0; background: var(--moon); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  #count { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 42vmin; font-weight: 900; color: var(--moon); -webkit-text-stroke: 4px var(--night); pointer-events: none; }
+  .topbar { position: absolute; top: 0; left: 0; right: 0; padding: max(16px, env(safe-area-inset-top)) 24px 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 22px; font-weight: 800; color: var(--cocoa); }
+  #status { font: 11px ui-monospace, Menlo, monospace; opacity: .5; text-align: right; font-weight: 400; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; padding: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); display: flex; gap: 16px; justify-content: center; align-items: center; }
+  #snap:disabled { opacity: .4; animation: none; }
+  #snap { width: 104px; height: 104px; padding: 0; border-radius: 50%; background: var(--orange); border: 8px solid var(--moon); }
+  #taken { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; }
+  #taken img { width: 96px; border-radius: 8px; border: 3px solid var(--moon); display: block; box-shadow: 0 2px 6px rgba(11,8,32,.6); }
+  #tapToPlay { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; background: rgba(23,18,58,.88); }
+
+  /* result: a ticket */
+  .ticket { background: var(--moon); color: var(--night); border-radius: 28px; padding: 28px 40px 34px; max-width: 92vw; position: relative; box-shadow: 0 6px 0 rgba(11,8,32,.6); }
+  .ticket::before, .ticket::after { content: ""; position: absolute; top: 50%; width: 36px; height: 36px; border-radius: 50%; background: var(--cream); transform: translateY(-50%); }
+  .ticket::before { left: -18px; } .ticket::after { right: -18px; }
+  .ticket h2 { margin: 0 0 4px; font-size: 24px; font-weight: 800; }
+  .ticket p { margin: 0 0 18px; opacity: .7; font-size: 18px; }
+  #code { font-family: ui-monospace, Menlo, monospace; font-size: clamp(48px, 14vmin, 120px); letter-spacing: .22em; font-weight: 800; line-height: 1; padding-left: .22em; color: var(--orange); }
+  .muted { font-size: 16px; opacity: .5; margin-top: 24px; }
+  #err code { background: rgba(255,244,218,.14); padding: 2px 8px; border-radius: 6px; }
+  #err a { color: var(--moon); }
+
+  /* ---- fun: motion ---- */
+  @keyframes bob { 0%, 100% { transform: translateY(0) rotate(var(--tilt, 0deg)); } 50% { transform: translateY(-8px) rotate(calc(var(--tilt, 0deg) * -1)); } }
+  @keyframes sway { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+  @keyframes wiggle { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-4deg) scale(1.05); } 75% { transform: rotate(4deg) scale(1.05); } }
+  @keyframes popIn { 0% { transform: scale(.3); opacity: 0; } 70% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
+  @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(230,57,70,.6), 0 4px 0 rgba(11,8,32,.6); } 70% { box-shadow: 0 0 0 22px rgba(230,57,70,0), 0 4px 0 rgba(11,8,32,.6); } }
+  @keyframes jelly { 0% { transform: scale(1,1); } 30% { transform: scale(1.15,.85); } 50% { transform: scale(.9,1.1); } 70% { transform: scale(1.05,.95); } 100% { transform: scale(1,1); } }
+  .sign .name { animation: bob 3.6s ease-in-out infinite; }
+  #start.active .big { animation: wiggle 2.6s ease-in-out 1.2s infinite; }
+  button:hover { filter: brightness(1.06); }
+  .count { transition: transform .15s; }
+  .count:hover { transform: translateY(-6px) rotate(-2deg); }
+  .count:nth-child(even):hover { transform: translateY(-6px) rotate(2deg); }
+  .count:active, button:active { animation: jelly .4s; }
+  #snap { animation: pulse 1.6s ease-out infinite; }
+  #count.tick { animation: popIn .45s cubic-bezier(.2,.9,.3,1.4); }
+  #taken img.pop { animation: popIn .5s cubic-bezier(.2,.9,.3,1.4); }
+  .ticket { animation: popIn .6s cubic-bezier(.2,.9,.3,1.4); }
+  #code span { display: inline-block; animation: popIn .5s cubic-bezier(.2,.9,.3,1.4) both; }
+  #confetti { position: absolute; inset: 0; pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- Original castle skyline with moon and bats (no film artwork). -->
+  <symbol id="castle" viewBox="0 0 1200 320">
+    <circle cx="900" cy="92" r="64" fill="#FFE9A8"/>
+    <circle cx="880" cy="80" r="10" fill="#F3D98E" opacity=".7"/><circle cx="918" cy="110" r="7" fill="#F3D98E" opacity=".7"/>
+    <g fill="#0B0820">
+      <!-- towers -->
+      <path d="M140 320 V150 l40 -70 l40 70 V320 Z"/>
+      <path d="M300 320 V200 l30 -50 l30 50 V320 Z"/>
+      <path d="M520 320 V110 l60 -100 l60 100 V320 Z"/>
+      <path d="M760 320 V190 l34 -60 l34 60 V320 Z"/>
+      <path d="M960 320 V170 l40 -70 l40 70 V320 Z"/>
+      <!-- walls with battlements -->
+      <path d="M0 320 V250 h20 v-18 h20 v18 h20 v-18 h20 v18 h40 V320 Z"/>
+      <path d="M220 320 V240 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 V320 Z"/>
+      <path d="M360 320 V230 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 V320 Z"/>
+      <path d="M640 320 V236 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 V320 Z"/>
+      <path d="M828 320 V250 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 v-18 h20 v18 h12 V320 Z"/>
+      <path d="M1040 320 V246 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 v-18 h20 v18 h20 V320 Z"/>
+      <rect y="300" width="1200" height="20"/>
+    </g>
+    <!-- lit windows -->
+    <g fill="#FFD166">
+      <rect x="172" y="190" width="16" height="26" rx="8"/><rect x="322" y="230" width="14" height="22" rx="7"/>
+      <rect x="560" y="150" width="18" height="30" rx="9"/><rect x="600" y="150" width="18" height="30" rx="9"/><rect x="580" y="215" width="18" height="30" rx="9"/>
+      <rect x="786" y="222" width="14" height="22" rx="7"/><rect x="992" y="210" width="16" height="26" rx="8"/>
+      <rect x="420" y="268" width="12" height="18" rx="6"/><rect x="700" y="268" width="12" height="18" rx="6"/><rect x="1100" y="270" width="12" height="18" rx="6"/>
+    </g>
+    <!-- bats -->
+    <g fill="#0B0820">
+      <path class="bat" d="M860 60 q-14 -18 -34 -6 q6 10 16 10 q4 10 18 8 q14 2 18 -8 q10 0 16 -10 q-20 -12 -34 6 Z"/>
+      <path class="bat" d="M1080 150 q-10 -14 -26 -4 q5 8 12 8 q3 8 14 6 q11 2 14 -6 q7 0 12 -8 q-16 -10 -26 4 Z"/>
+      <path class="bat" d="M700 40 q-12 -16 -30 -5 q6 9 14 9 q3 9 16 7 q13 2 16 -7 q8 0 14 -9 q-18 -11 -30 5 Z"/>
+    </g>
+  </symbol>
+</svg>
+
+<!-- 1. start -->
+<section id="start" class="screen active">
+  <div class="credit">brought to you by <code>&lt; IT /&gt;</code></div>
+  <div class="hero">
+    <h1 class="sign"><span class="neon">Hotel</span><span class="name">Transylvania</span></h1>
+    <p class="lead">Check in, show us your costume, keep the strip.</p>
+    <button class="big" style="margin-top:36px" onclick="go('mode')">Check in</button>
+  </div>
+  <div class="cast"><svg viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><use href="#castle"/></svg></div>
+</section>
+
+<!-- 2. pick a mode -->
+<section id="mode" class="screen">
+  <h1 style="font-size:clamp(32px,7vmin,64px)">Pick your mode</h1>
+  <div class="modes">
+    <button class="modecard" onclick="go('pick')">
+      <span class="icon">📸</span><b>Photo Booth</b><small>Pose for 1 to 4 snaps.<br>You pick how many.</small>
+    </button>
+    <button class="modecard rawr" onclick="startRawr()">
+      <span class="icon">🦖</span><b>Rawr Mode</b><small>Roar as loud as you can.<br>3 surprise snaps mid-roar.</small>
+    </button>
+  </div>
+  <button class="ghost" style="margin-top:40px" onclick="go('start')">Back</button>
+</section>
+
+<!-- 2b. how many snaps -->
+<section id="pick" class="screen">
+  <h1 style="font-size:clamp(32px,7vmin,64px)">How many snaps?</h1>
+  <p class="lead">They print as one strip, top to bottom.</p>
+  <div class="counts" id="counts"></div>
+  <button class="ghost" style="margin-top:40px" onclick="go('mode')">Back</button>
+</section>
+
+<!-- 3. camera -->
+<section id="cam" class="screen" style="padding:0">
+  <video id="video" autoplay playsinline muted></video>
+  <img id="shot" alt="Your strip">
+  <div id="guide"></div>
+  <div id="flash"></div>
+  <div id="count"></div>
+  <div id="tapToPlay"><button class="big">Tap to start camera</button></div>
+  <div class="topbar">
+    <span id="hint"></span>
+    <span id="status"></span>
+  </div>
+  <div id="taken"></div>
+  <div id="meter" style="display:none">
+    <div class="track"><div class="peak"></div><div class="fill"></div></div>
+    <div class="pct">0%</div>
+  </div>
+  <div id="rawrWord">RAWR!</div>
+  <div class="bar" id="camBar">
+    <button class="ghost" onclick="flipCam()">Flip</button>
+    <button id="snap" onclick="mode === 'rawr' ? runRawr() : runSequence()" aria-label="Take photos"></button>
+    <button class="ghost" onclick="go('start')">Cancel</button>
+  </div>
+  <div class="bar" id="reviewBar" style="display:none">
+    <button class="ghost big" onclick="retake()">Retake</button>
+    <button class="big" onclick="savePhoto()">Keep it</button>
+  </div>
+</section>
+
+<!-- 4. result -->
+<section id="result" class="screen">
+  <canvas id="confetti"></canvas>
+  <div class="credit">brought to you by <code>&lt; IT /&gt;</code></div>
+  <div class="hero">
+    <div class="ticket">
+      <h2>Your room key</h2>
+      <p>Show it at the front desk (print counter) to get your strip</p>
+      <div id="code">------</div>
+    </div>
+    <button class="big" style="margin-top:36px" onclick="go('start')">Done</button>
+    <div class="muted" id="autoReset"></div>
+  </div>
+  <div class="cast"><svg viewBox="0 0 1200 320" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><use href="#castle"/></svg></div>
+</section>
+
+<!-- error -->
+<section id="err" class="screen">
+  <div style="max-width:640px;font-size:20px;line-height:1.5">
+    <h1 style="font-size:40px;margin-bottom:16px">Camera not available</h1>
+    <div id="errMsg"></div>
+    <p>Open this page over <code>https://</code> and allow camera access when asked.<br>
+    Still blocked? The certificate isn't trusted yet — see the setup page linked above.</p>
+    <button onclick="go('start')">Back</button>
+  </div>
+</section>
+
+<canvas id="stripCanvas" hidden></canvas>
+
+<script>
+// ---- theme / strip settings ------------------------------------------------
+const THEME = {
+  title: 'HOTEL TRANSYLVANIA',    // printed in the strip header
+  subtitle: 'MORE Power Halloween 2026',   // printed in the strip footer
+  credit: 'brought to you by < IT />',     // small line under the footer ('' to skip)
+  maxSnaps: 4,
+  frameW: 1800, frameH: 1350,      // each snap, 4:3 landscape — stacks nicely on a receipt roll
+  pad: 84, gap: 60, headerH: 345, footerH: 165,
+  jpegQuality: 0.95,
+  // Rawr mode timing (ms): roar window, earliest first snap, min/max gap between snaps
+  roarMs: 11000, roarFirstSnapMs: 3000, roarGapMs: [2000, 3200],
+};
+// -----------------------------------------------------------------------------
+const $ = (id) => document.getElementById(id);
+const video = $('video'), shotImg = $('shot'), stripCanvas = $('stripCanvas');
+let stream = null, facing = 'user', snaps = 3, frames = [], stripDataUrl = null, resetTimer = null;
+let mode = 'photo', roar = null;            // roar = { peak: 0..1, rating } in rawr mode
+let audioCtx = null, analyser = null, micStream = null, meterRAF = 0;
+
+// snap-count buttons
+for (let n = 1; n <= THEME.maxSnaps; n++) {
+  const b = document.createElement('button'); b.className = 'count';
+  b.innerHTML = `<b>${n}</b><span class="strip">${'<i></i>'.repeat(n)}</span>`;
+  b.onclick = () => { snaps = n; startBooth(); };
+  $('counts').appendChild(b);
+}
+
+function go(id) {
+  document.querySelectorAll('.screen').forEach((s) => s.classList.toggle('active', s.id === id));
+  clearTimeout(resetTimer);
+  if (id === 'start') stopCam();
+}
+
+// Clear anything left over from the previous guest before the camera screen is shown
+function resetCamView() {
+  frames = []; $('taken').innerHTML = '';
+  shotImg.removeAttribute('src'); shotImg.style.display = 'none';
+  video.style.display = 'block'; $('guide').style.display = 'block';
+  $('camBar').style.display = ''; $('reviewBar').style.display = 'none';
+  $('count').textContent = ''; $('hint').textContent = 'Starting camera…';
+  $('meter').style.display = 'none'; $('rawrWord').style.display = 'none';
+}
+async function startBooth() { mode = 'photo'; roar = null; resetCamView(); go('cam'); await openCam(); }
+
+// ---- Rawr mode ----------------------------------------------------------
+async function startRawr() {
+  mode = 'rawr'; snaps = 3; roar = null;
+  // iOS: the AudioContext must be created AND resumed synchronously inside the tap, before any await
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {} }
+  audioCtx?.resume().catch(() => {});
+  resetCamView(); go('cam');
+  await openCam();      // in rawr mode openCam() requests camera + mic in ONE call (see below)
+  await startMic();
+}
+let micReady = false;
+async function startMic() {
+  if (!audioCtx) return;
+  micReady = false;
+  $('hint').textContent = 'Starting microphone…'; $('snap').disabled = true;
+  try {
+    // prefer the audio track that came with the camera stream (single permission, single audio session)
+    if (!micStream) {
+      if (stream?.getAudioTracks().length) micStream = new MediaStream(stream.getAudioTracks());
+      else micStream = await navigator.mediaDevices.getUserMedia({ audio: MIC_CONSTRAINTS, video: false });
+    }
+    if (!analyser) { analyser = audioCtx.createAnalyser(); analyser.fftSize = 2048; audioCtx.createMediaStreamSource(micStream).connect(analyser); }
+    await audioCtx.resume();
+    $('meter').style.display = 'flex';
+    runMeter();
+    // wait for actual samples: iOS can hand over a track that stays silent for a second or two
+    const t0 = performance.now();
+    while (performance.now() - t0 < 6000) {
+      analyser.getFloatTimeDomainData(meterBuf);
+      if (meterBuf.some((v) => v !== 0)) { micReady = true; break; }
+      await sleep(100);
+    }
+    const track = micStream.getAudioTracks()[0];
+    track.onmute = () => { micReady = false; $('hint').textContent = 'Mic went quiet — tap Flip to restart'; };
+    track.onunmute = () => { micReady = true; };
+    $('snap').disabled = false;
+    $('hint').textContent = micReady ? 'Tap the button, then ROAR' : 'Mic is silent — check Safari\'s mic permission, or tap Flip to retry';
+  } catch (e) {
+    $('snap').disabled = false;
+    $('hint').textContent = 'Microphone blocked: ' + e.name + '. Allow the mic in Safari settings.';
+  }
+}
+const MIC_CONSTRAINTS = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+const meterBuf = new Float32Array(2048);
+let meterLevel = 0, meterPeak = 0;
+function micLevel() { // 0..1 from RMS in dB (-60 dB → 0, -5 dB → 1)
+  if (!analyser) return 0;
+  analyser.getFloatTimeDomainData(meterBuf);
+  let sum = 0; for (let i = 0; i < meterBuf.length; i++) sum += meterBuf[i] * meterBuf[i];
+  const db = 20 * Math.log10(Math.sqrt(sum / meterBuf.length) + 1e-8);
+  return Math.max(0, Math.min(1, (db + 60) / 55));
+}
+function runMeter() {
+  cancelAnimationFrame(meterRAF);
+  const tick = () => {
+    const l = micLevel();
+    meterLevel = l > meterLevel ? l : meterLevel * 0.9 + l * 0.1;   // fast attack, slow decay
+    $('meter').querySelector('.fill').style.clipPath = `inset(${(100 - meterLevel * 100).toFixed(1)}% 0 0 0)`;
+    $('meter').querySelector('.peak').style.bottom = `calc(${(meterPeak * 100).toFixed(1)}% - 2px)`;
+    $('meter').querySelector('.pct').textContent = Math.round(meterLevel * 100) + '%';
+    const w = $('rawrWord'); if (w.style.display === 'flex') w.style.transform = `scale(${0.6 + meterLevel * 1.2}) rotate(${(meterLevel - 0.5) * 8}deg)`;
+    meterRAF = requestAnimationFrame(tick);
+  };
+  tick();
+}
+function stopMic() {
+  cancelAnimationFrame(meterRAF);
+  if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
+  analyser = null; micReady = false;
+  $('meter').style.display = 'none'; $('rawrWord').style.display = 'none';
+}
+function rateRoar(p) {
+  return p < 0.3 ? 'a tiny squeak' : p < 0.55 ? 'a decent grumble' : p < 0.8 ? 'a mighty roar' : 'LEGENDARY';
+}
+async function runRawr() {
+  audioCtx?.resume().catch(() => {});          // synchronous call inside the tap (iOS)
+  if (!analyser || !micReady) await startMic();
+  $('camBar').style.display = 'none';
+  meterPeak = 0;
+  $('hint').textContent = 'Get ready to roar…';
+  for (let n = 3; n > 0; n--) { const c = $('count'); c.textContent = n; c.classList.remove('tick'); void c.offsetWidth; c.classList.add('tick'); await sleep(900); }
+  $('count').textContent = '';
+  $('hint').textContent = 'ROAR!'; $('rawrWord').style.display = 'flex';
+  // 3 surprise snaps: first one no earlier than roarFirstSnapMs, then random gaps within roarGapMs
+  const ROAR_MS = THEME.roarMs, [gMin, gMax] = THEME.roarGapMs, times = [];
+  let t = THEME.roarFirstSnapMs + Math.random() * 1500;
+  for (let i = 0; i < 3; i++) { times.push(Math.min(t, ROAR_MS - 300)); t += gMin + Math.random() * (gMax - gMin); }
+  const t0 = performance.now(); let next = 0;
+  while (performance.now() - t0 < ROAR_MS) {
+    const l = micLevel(); if (l > meterPeak) meterPeak = l;
+    if (next < times.length && performance.now() - t0 >= times[next]) { captureFrame(); next++; }
+    await sleep(16);
+  }
+  while (next < 3) { captureFrame(); next++; }   // never finish with fewer than 3
+  $('rawrWord').style.display = 'none'; $('meter').style.display = 'none';
+  roar = { peak: meterPeak, rating: rateRoar(meterPeak) };
+  $('taken').innerHTML = '';
+  buildStrip();
+  shotImg.src = stripDataUrl; shotImg.style.display = 'block'; video.style.display = 'none'; $('guide').style.display = 'none';
+  $('reviewBar').style.display = ''; $('hint').textContent = `${Math.round(meterPeak * 100)}% ${roar.rating}!`;
+}
+
+async function openCam() {
+  stopCam();
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    $('errMsg').innerHTML = 'This page is not running in a secure (https) context, so Safari hides the camera.<br>' +
+      `Open <a href="http://${location.hostname}:8080/setup">http://${location.hostname}:8080/setup</a> on this device and follow the steps.`;
+    go('err'); return;
+  }
+  try {
+    try {
+      // ask for the biggest frame the camera offers; the browser picks the closest it can do
+      const audio = mode === 'rawr' ? MIC_CONSTRAINTS : false;
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: facing }, width: { ideal: 4096 }, height: { ideal: 3072 } }, audio });
+    } catch {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: mode === 'rawr' });
+    }
+    const track = stream.getVideoTracks()[0];
+    video.srcObject = stream;
+    video.style.transform = facing === 'user' ? 'scaleX(-1)' : 'none';
+    try { await video.play(); } catch (e) { console.warn('play() rejected', e); }
+    showLive();
+    watchStream(track);
+  } catch (e) {
+    $('errMsg').textContent = e.name + ': ' + e.message;
+    go('err');
+  }
+}
+function stopCam() {
+  if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
+  video.srcObject = null; shotImg.removeAttribute('src'); stripDataUrl = null;
+  stopMic();
+}
+async function flipCam() { facing = facing === 'user' ? 'environment' : 'user'; await openCam(); if (mode === 'rawr') await startMic(); }
+
+function watchStream(track) {
+  const diag = () => {
+    const s = track.getSettings();
+    $('status').textContent = `${track.label || 'camera'} ${s.width || '?'}×${s.height || '?'} ${track.readyState}${track.muted ? ' MUTED' : ''} ${video.paused ? 'paused' : 'playing'}`;
+  };
+  diag();
+  track.onmute = () => { diag(); $('hint').textContent = 'Camera is in use elsewhere — close other tabs, then tap Flip'; };
+  track.onunmute = () => { diag(); $('hint').textContent = `Ready for ${snaps} snap${snaps > 1 ? 's' : ''}`; };
+  track.onended = () => { diag(); $('hint').textContent = 'Camera stopped — tap Flip to restart'; };
+  setTimeout(() => { diag(); if (track.readyState === 'live' && (video.paused || video.videoWidth === 0)) $('tapToPlay').style.display = 'flex'; }, 2500);
+  video.addEventListener('playing', () => { $('tapToPlay').style.display = 'none'; diag(); }, { once: true });
+}
+$('tapToPlay').addEventListener('click', async () => { try { await video.play(); } catch (e) { alert('play failed: ' + e.message); } $('tapToPlay').style.display = 'none'; });
+document.addEventListener('visibilitychange', () => {
+  const onLiveView = $('cam').classList.contains('active') && shotImg.style.display === 'none';
+  if (!document.hidden && onLiveView) openCam();
+});
+
+// guide box = largest frameW:frameH rectangle that fits the screen (matches the capture crop)
+function layoutGuide() {
+  const W = innerWidth, H = innerHeight, ar = THEME.frameW / THEME.frameH;
+  let w = W - 32, h = w / ar; if (h > H - 32) { h = H - 32; w = h * ar; }
+  Object.assign($('guide').style, { width: w + 'px', height: h + 'px' });
+}
+addEventListener('resize', layoutGuide); layoutGuide();
+
+function showLive() {
+  shotImg.style.display = 'none'; video.style.display = 'block'; $('guide').style.display = 'block';
+  $('camBar').style.display = ''; $('reviewBar').style.display = 'none';
+  $('hint').textContent = mode === 'rawr' ? (micReady ? 'Tap the button, then ROAR' : 'Starting microphone…') : `Ready for ${snaps} snap${snaps > 1 ? 's' : ''}`; $('count').textContent = '';
+  if (mode === 'rawr' && analyser) $('meter').style.display = 'flex';
+}
+
+async function runSequence() {
+  $('camBar').style.display = 'none';
+  for (let i = 0; i < snaps; i++) {
+    $('hint').textContent = snaps > 1 ? `Snap ${i + 1} of ${snaps}` : 'Smile!';
+    for (let n = 3; n > 0; n--) { const c = $('count'); c.textContent = n; c.classList.remove('tick'); void c.offsetWidth; c.classList.add('tick'); await sleep(900); }
+    $('count').textContent = '';
+    captureFrame();
+    if (i < snaps - 1) { $('hint').textContent = 'Nice! Next pose…'; await sleep(1400); }
+  }
+  $('taken').innerHTML = '';
+  buildStrip();
+  shotImg.src = stripDataUrl; shotImg.style.display = 'block'; video.style.display = 'none'; $('guide').style.display = 'none';
+  $('reviewBar').style.display = ''; $('hint').textContent = 'Looking good?';
+}
+
+function captureFrame() {
+  const { frameW: FW, frameH: FH } = THEME;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const scale = Math.max(FW / vw, FH / vh);
+  const sw = FW / scale, sh = FH / scale, sx = (vw - sw) / 2, sy = (vh - sh) / 2;
+  const fc = document.createElement('canvas'); fc.width = FW; fc.height = FH;   // one canvas per frame (no async decode)
+  const ctx = fc.getContext('2d');
+  if (facing === 'user') { ctx.translate(FW, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, FW, FH);
+  frames.push(fc);
+  $('flash').style.opacity = 1; setTimeout(() => ($('flash').style.opacity = 0), 120);
+  const t = document.createElement('img'); t.src = fc.toDataURL('image/jpeg', 0.8); $('taken').appendChild(t);
+  t.classList.add('pop');
+}
+
+// Stack frames into one tall strip (what gets saved and printed). Black on white so it dithers cleanly.
+function buildStrip() {
+  const T = THEME, W = T.frameW + 2 * T.pad, fw = T.frameW, fh = T.frameH;
+  const footerH = T.footerH * (1 + (roar ? 0.7 : 0) + (T.credit ? 0.45 : 0));
+  const H = T.headerH + frames.length * fh + (frames.length - 1) * T.gap + footerH + T.pad;
+  stripCanvas.width = W; stripCanvas.height = H;
+  const c = stripCanvas.getContext('2d');
+  c.fillStyle = '#fff'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#000'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  // header: title flanked by monster eyes
+  const fam = getComputedStyle(document.body).fontFamily, eyeR = 50, eyeX = T.pad + 120, maxTextW = W - 2 * (eyeX + eyeR * 2.4);
+  let fs = Math.round(T.headerH * 0.48);
+  c.font = `900 ${fs}px ${fam}`;
+  while (c.measureText(T.title).width > maxTextW && fs > 20) { fs -= 2; c.font = `900 ${fs}px ${fam}`; }
+  c.fillText(T.title, W / 2, T.headerH * 0.5);
+  drawBat(c, eyeX, T.headerH * 0.5, eyeR * 3.4); drawBat(c, W - eyeX, T.headerH * 0.5, eyeR * 3.4);
+  c.fillRect(T.pad, T.headerH - 20, W - 2 * T.pad, 14);
+  // frames
+  let y = T.headerH;
+  for (const img of frames) {
+    c.fillStyle = '#000'; c.fillRect(T.pad - 14, y - 14, fw + 28, fh + 28); // border
+    c.drawImage(img, T.pad, y, fw, fh);
+    y += fh + T.gap;
+  }
+  // footer
+  c.fillStyle = '#000'; c.font = `800 ${Math.round(T.footerH * 0.42)}px ${fam}`;
+  c.fillText(T.subtitle, W / 2, y - T.gap + T.footerH * 0.55);
+  let fy = y - T.gap + T.footerH * 0.55;
+  if (roar) {
+    fy += T.footerH * 0.7;
+    c.font = `900 ${Math.round(T.footerH * 0.5)}px ${fam}`;
+    c.fillText(`ROAR POWER ${Math.round(roar.peak * 100)}%  ${roar.rating.toUpperCase()}`, W / 2, fy);
+  }
+  if (T.credit) {
+    fy += T.footerH * 0.5;
+    c.font = `600 ${Math.round(T.footerH * 0.24)}px ${fam}`;
+    c.fillText(T.credit, W / 2, fy);
+  }
+  stripDataUrl = stripCanvas.toDataURL('image/jpeg', T.jpegQuality);
+}
+function drawBat(c, x, y, w) { // simple bat silhouette — solid black prints cleanly on thermal paper
+  const h = w * 0.55;
+  c.save(); c.translate(x, y); c.scale(w / 100, h / 55); c.fillStyle = '#000';
+  c.beginPath(); c.moveTo(0, -4);
+  c.quadraticCurveTo(-18, -30, -50, -12); c.quadraticCurveTo(-40, 0, -28, 2); c.quadraticCurveTo(-26, 16, -8, 14);
+  c.lineTo(0, 24); c.lineTo(8, 14); c.quadraticCurveTo(26, 16, 28, 2); c.quadraticCurveTo(40, 0, 50, -12); c.quadraticCurveTo(18, -30, 0, -4);
+  c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(-9, -14); c.lineTo(-4, -2); c.lineTo(-12, -4); c.closePath(); c.moveTo(9, -14); c.lineTo(4, -2); c.lineTo(12, -4); c.closePath(); c.fill(); // ears
+  c.restore();
+}
+function drawEyes(c, x, y, r) { // (kept for reuse) two round eyes with pupils
+  for (const dx of [-r * 1.15, r * 1.15]) {
+    c.beginPath(); c.arc(x + dx, y, r, 0, Math.PI * 2); c.fillStyle = '#000'; c.fill();
+    c.beginPath(); c.arc(x + dx, y, r * 0.72, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill();
+    c.beginPath(); c.arc(x + dx + r * 0.2, y + r * 0.15, r * 0.32, 0, Math.PI * 2); c.fillStyle = '#000'; c.fill();
+  }
+}
+
+function retake() { frames = []; $('taken').innerHTML = ''; showLive(); }
+
+async function savePhoto() {
+  $('reviewBar').style.display = 'none'; $('hint').textContent = 'Saving…';
+  try {
+    const r = await fetch('/api/photos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: stripDataUrl, note: roar ? `rawr ${Math.round(roar.peak * 100)}% (${roar.rating})` : `${frames.length} snap strip` }) });
+    if (!r.ok) throw new Error('server said ' + r.status);
+    const { code, ticket } = await r.json();
+    stopCam();
+    $('result').querySelector('.ticket p').textContent = ticket ? 'Your slip is printing — take it to the front desk' : 'Show it at the front desk (print counter) to get your strip';
+    $('code').innerHTML = [...code].map((ch, i) => `<span style="animation-delay:${0.35 + i * 0.09}s">${ch}</span>`).join('');
+    go('result');
+    confetti();
+    let left = 60;
+    const tick = () => { $('autoReset').textContent = `Back to start in ${left}s`; if (left-- > 0) resetTimer = setTimeout(tick, 1000); else go('start'); };
+    tick();
+  } catch (e) {
+    alert('Could not save the strip: ' + e.message + '\nPlease try again.');
+    $('reviewBar').style.display = '';
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// confetti burst in the poster colours when the code appears
+function confetti() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = $('confetti'), ctx = cv.getContext('2d');
+  cv.width = innerWidth; cv.height = innerHeight;
+  const colors = ['#E63946', '#7C4DFF', '#FFD166', '#FFF4DA'];
+  const bits = Array.from({ length: 140 }, () => ({
+    x: cv.width / 2, y: cv.height * 0.45, vx: (Math.random() - 0.5) * 22, vy: -Math.random() * 18 - 6,
+    w: 8 + Math.random() * 8, h: 5 + Math.random() * 6, r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 0.3,
+    c: colors[Math.floor(Math.random() * colors.length)],
+  }));
+  let t = 0;
+  (function frame() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (const b of bits) {
+      b.x += b.vx; b.y += b.vy; b.vy += 0.5; b.vx *= 0.99; b.r += b.vr;
+      ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.r); ctx.fillStyle = b.c; ctx.fillRect(-b.w / 2, -b.h / 2, b.w, b.h); ctx.restore();
+    }
+    if (++t < 160 && $('result').classList.contains('active')) requestAnimationFrame(frame); else ctx.clearRect(0, 0, cv.width, cv.height);
+  })();
+}
+navigator.wakeLock?.request('screen').catch(() => {});
+</script>
+</body>
+</html>
